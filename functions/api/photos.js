@@ -6,118 +6,50 @@ const ALLOWED = new Set([
   "avif"
 ]);
 
-
-function json(data, status = 200) {
-
+function json(data,status=200){
   return new Response(
     JSON.stringify(data),
     {
       status,
-
-      headers: {
-        "content-type":
-          "application/json; charset=utf-8",
-
-        "cache-control":
-          "public, max-age=60",
-
-        "x-content-type-options":
-          "nosniff"
+      headers:{
+        "content-type":"application/json;charset=utf-8",
+        "cache-control":"public,max-age=60"
       }
     }
   );
-
 }
 
+export async function onRequestGet({request,env}){
 
-export async function onRequestGet({
-  request,
-  env
-}) {
+  const url=new URL(request.url);
 
-  const url =
-    new URL(request.url);
+  const album=url.searchParams.get("album")||"";
 
+  const prefix=album
+      ?`photos/${album}/`
+      :"photos/";
 
-  const album =
-    url.searchParams.get("album") || "";
-
-
-  if (
-    album.includes("..") ||
-    album.includes("\\") ||
-    album.startsWith("/")
-  ) {
-
-    return json(
-      {
-        error: "Invalid album"
-      },
-      400
-    );
-
-  }
-
-
-  const prefix =
-    album
-      ? `photos/${album}/`
-      : "photos/";
-
-
-  const photos = [];
+  const photos=[];
 
   let cursor;
 
+  do{
 
-  do {
+    const result=await env.WOOOK.list({
+      prefix,
+      limit:1000,
+      ...(cursor?{cursor}:{})
+    });
 
-    const result =
-      await env.WOOOK.list({
+    for(const object of result.objects){
 
-        prefix,
+      const key=object.key;
 
-        limit: 1000,
+      const name=key.split("/").pop();
 
-        ...(cursor
-          ? { cursor }
-          : {})
-      });
+      const ext=name.split(".").pop().toLowerCase();
 
-
-    for (
-      const object
-      of result.objects
-    ) {
-
-      const key =
-        object.key;
-
-
-      if (
-        !key.startsWith("photos/")
-      ) {
-        continue;
-      }
-
-
-      const name =
-        key.split("/").pop() || "";
-
-
-      const extension =
-        name
-          .split(".")
-          .pop()
-          ?.toLowerCase() || "";
-
-
-      if (
-        !ALLOWED.has(extension)
-      ) {
-        continue;
-      }
-
+      if(!ALLOWED.has(ext))continue;
 
       photos.push({
 
@@ -125,37 +57,26 @@ export async function onRequestGet({
 
         name,
 
-        size:
-          object.size,
+        size:object.size,
 
-        uploaded:
-          object.uploaded,
+        uploaded:object.uploaded,
 
-        url:
-          `/img/${key.slice(
-            "photos/".length
-          )}`
+        thumbnail:`/img/thumb/${key.slice(7).replace(/\.[^.]+$/,".webp")}`,
+
+        full:`/img/${key.slice(7)}`
 
       });
 
     }
 
+    cursor=result.truncated?result.cursor:undefined;
 
-    cursor =
-      result.truncated
-        ? result.cursor
-        : undefined;
-
-
-  } while (cursor);
-
+  }while(cursor);
 
   photos.sort(
-    (a, b) =>
-      new Date(b.uploaded) -
-      new Date(a.uploaded)
+    (a,b)=>
+      new Date(b.uploaded)-new Date(a.uploaded)
   );
-
 
   return json({
     album,
