@@ -1,19 +1,29 @@
-export async function onRequestGet({ env }) {
+export async function onRequestGet({
+  env
+}) {
 
   const albums =
     new Set();
 
   let cursor;
 
+
   do {
 
     const result =
       await env.WOOOK.list({
+
         prefix: "photos/",
+
         delimiter: "/",
+
         limit: 1000,
-        ...(cursor ? { cursor } : {})
+
+        ...(cursor
+          ? { cursor }
+          : {})
       });
+
 
     for (
       const prefix
@@ -25,23 +35,30 @@ export async function onRequestGet({ env }) {
           .slice("photos/".length)
           .replace(/\/$/, "");
 
+
       if (name) {
+
         albums.add(name);
+
       }
 
     }
+
 
     cursor =
       result.truncated
         ? result.cursor
         : undefined;
 
+
   } while (cursor);
+
 
   return new Response(
     JSON.stringify({
-      albums:
-        [...albums].sort()
+      albums: [
+        ...albums
+      ].sort()
     }),
     {
       headers: {
