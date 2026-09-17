@@ -1,26 +1,46 @@
 const TYPES = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  avif: "image/avif"
+
+  jpg:
+    "image/jpeg",
+
+  jpeg:
+    "image/jpeg",
+
+  png:
+    "image/png",
+
+  webp:
+    "image/webp",
+
+  avif:
+    "image/avif"
+
 };
+
 
 export async function onRequestGet({
   env,
   params
 }) {
 
-  const parts = params.path;
+  const parts =
+    params.path;
+
 
   if (
     !Array.isArray(parts) ||
     parts.length === 0
   ) {
-    return new Response("Not Found", {
-      status: 404
-    });
+
+    return new Response(
+      "Not Found",
+      {
+        status: 404
+      }
+    );
+
   }
+
 
   if (
     parts.some(
@@ -31,15 +51,24 @@ export async function onRequestGet({
         part.includes("%")
     )
   ) {
-    return new Response("Forbidden", {
-      status: 403
-    });
+
+    return new Response(
+      "Forbidden",
+      {
+        status: 403
+      }
+    );
+
   }
 
-  const path = parts.join("/");
+
+  const path =
+    parts.join("/");
+
 
   const filename =
     parts[parts.length - 1] || "";
+
 
   const extension =
     filename
@@ -47,37 +76,48 @@ export async function onRequestGet({
       .pop()
       ?.toLowerCase() || "";
 
+
   const contentType =
     TYPES[extension];
 
+
   if (!contentType) {
+
     return new Response(
       "Unsupported image",
       {
         status: 415
       }
     );
+
   }
+
 
   const key =
     `photos/${path}`;
 
+
   const object =
     await env.WOOOK.get(key);
 
+
   if (!object) {
+
     return new Response(
       "Not Found",
       {
         status: 404
       }
     );
+
   }
+
 
   return new Response(
     object.body,
     {
       headers: {
+
         "content-type":
           contentType,
 
@@ -92,7 +132,9 @@ export async function onRequestGet({
 
         "content-disposition":
           "inline"
+
       }
     }
   );
+
 }
