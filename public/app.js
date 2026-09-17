@@ -4,60 +4,56 @@ const loading=document.getElementById("loading");
 const lightbox=document.getElementById("lightbox");
 const lightboxImage=document.getElementById("lightbox-image");
 
+const closeButton=document.getElementById("close");
+const previousButton=document.getElementById("previous");
+const nextButton=document.getElementById("next");
+
 let photos=[];
 let currentIndex=0;
 
-function columns(){
-  if(innerWidth<=700)return 2;
-  if(innerWidth<=1100)return 3;
-  return 4;
-}
+/* -----------------------------
+   Photos
+----------------------------- */
 
 async function loadPhotos(album=""){
 
   loading.classList.remove("hidden");
 
-  const query=album?`?album=${encodeURIComponent(album)}`:"";
+  try{
 
-  const data=await fetch(`/api/photos${query}`)
-      .then(r=>r.json());
+    const query=album
+      ?`?album=${encodeURIComponent(album)}`
+      :"";
 
-  photos=data.photos||[];
+    const response=await fetch(`/api/photos${query}`);
 
-  render();
+    const data=await response.json();
 
-  loading.classList.add("hidden");
+    photos=data.photos||[];
 
-}
+    renderGallery();
 
-function render(){
+  }catch(error){
 
-  gallery.innerHTML="";
+    console.error(error);
 
-  const cols=[];
-  const heights=[];
+  }finally{
 
-  for(let i=0;i<columns();i++){
-
-    const c=document.createElement("div");
-
-    c.className="gallery-column";
-
-    gallery.appendChild(c);
-
-    cols.push(c);
-
-    heights.push(0);
+    loading.classList.add("hidden");
 
   }
 
+}
+
+/* -----------------------------
+   Gallery
+----------------------------- */
+
+function renderGallery(){
+
+  gallery.innerHTML="";
+
   photos.forEach((photo,index)=>{
-
-    let target=0;
-
-    for(let i=1;i<heights.length;i++)
-      if(heights[i]<heights[target])
-        target=i;
 
     const link=document.createElement("a");
 
@@ -65,70 +61,96 @@ function render(){
 
     link.href=photo.full;
 
-    const img=document.createElement("img");
+    const image=document.createElement("img");
 
-    img.loading="lazy";
+    image.src=photo.thumbnail;
+    image.alt=photo.name||"";
+    image.loading="lazy";
+    image.decoding="async";
 
-    img.decoding="async";
+    image.addEventListener("load",()=>{
 
-    img.src=photo.thumbnail;
+      /* 用真实尺寸替换默认 3:2 */
+      image.width=image.naturalWidth;
+      image.height=image.naturalHeight;
 
-    img.alt=photo.name;
+      image.style.aspectRatio=
+        `${image.naturalWidth}/${image.naturalHeight}`;
 
-    img.onload=()=>link.classList.add("loaded");
+      link.classList.add("loaded");
 
-    link.appendChild(img);
+    },{once:true});
 
-    link.onclick=e=>{
-      e.preventDefault();
-      open(index);
-    };
+    link.appendChild(image);
 
-    cols[target].appendChild(link);
+    link.addEventListener("click",event=>{
 
-    heights[target]+=1;
+      event.preventDefault();
+
+      openLightbox(index);
+
+    });
+
+    gallery.appendChild(link);
 
   });
 
 }
+
+/* -----------------------------
+   Albums
+----------------------------- */
 
 async function loadAlbums(){
 
-  const data=await fetch("/api/albums")
-      .then(r=>r.json());
+  try{
 
-  albums.innerHTML="";
+    const response=await fetch("/api/albums");
 
-  data.albums.forEach(album=>{
+    const data=await response.json();
 
-    const btn=document.createElement("button");
+    albums.innerHTML="";
 
-    btn.className="album";
+    (data.albums||[]).forEach(album=>{
 
-    btn.textContent=album;
+      const button=document.createElement("button");
 
-    btn.onclick=()=>{
+      button.className="album";
 
-      document.querySelectorAll(".album")
-        .forEach(b=>b.classList.remove("active"));
+      button.textContent=album;
 
-      btn.classList.add("active");
+      button.onclick=()=>{
 
-      loadPhotos(album);
+        document.querySelectorAll(".album")
+          .forEach(b=>b.classList.remove("active"));
 
-    };
+        button.classList.add("active");
 
-    albums.appendChild(btn);
+        loadPhotos(album);
 
-  });
+      };
+
+      albums.appendChild(button);
+
+    });
+
+  }catch(error){
+
+    console.error(error);
+
+  }
 
 }
 
-function open(index){
+/* -----------------------------
+   Lightbox
+----------------------------- */
+
+function openLightbox(index){
 
   currentIndex=index;
 
-  update();
+  updateLightbox();
 
   lightbox.classList.add("open");
 
@@ -136,7 +158,7 @@ function open(index){
 
 }
 
-function close(){
+function closeLightbox(){
 
   lightbox.classList.remove("open");
 
@@ -144,36 +166,57 @@ function close(){
 
 }
 
-function update(){
+function updateLightbox(){
 
   const photo=photos[currentIndex];
 
   lightboxImage.src=photo.full;
 
+  /* 预加载相邻两张原图 */
+
+  preload(currentIndex+1);
+
+  preload(currentIndex-1);
+
 }
 
-function next(){
+function preload(index){
+
+  if(!photos.length)return;
+
+  const i=(index+photos.length)%photos.length;
+
+  new Image().src=photos[i].full;
+
+}
+
+function nextPhoto(){
 
   currentIndex=(currentIndex+1)%photos.length;
 
-  update();
+  updateLightbox();
 
 }
 
-function prev(){
+function previousPhoto(){
 
   currentIndex=(currentIndex-1+photos.length)%photos.length;
 
-  update();
+  updateLightbox();
 
 }
 
-document.getElementById("close").onclick=close;
-document.getElementById("next").onclick=next;
-document.getElementById("previous").onclick=prev;
+/* -----------------------------
+   Events
+----------------------------- */
+
+closeButton.onclick=closeLightbox;
+nextButton.onclick=nextPhoto;
+previousButton.onclick=previousPhoto;
 
 lightbox.onclick=e=>{
-  if(e.target===lightbox)close();
+  if(e.target===lightbox)
+    closeLightbox();
 };
 
 document.addEventListener("keydown",e=>{
@@ -181,13 +224,15 @@ document.addEventListener("keydown",e=>{
   if(!lightbox.classList.contains("open"))
     return;
 
-  if(e.key==="Escape")close();
-  if(e.key==="ArrowRight")next();
-  if(e.key==="ArrowLeft")prev();
+  if(e.key==="Escape")closeLightbox();
+  if(e.key==="ArrowRight")nextPhoto();
+  if(e.key==="ArrowLeft")previousPhoto();
 
 });
 
-addEventListener("resize",render);
+/* -----------------------------
+   Start
+----------------------------- */
 
 loadAlbums();
 loadPhotos();
