@@ -30,9 +30,9 @@ let currentIndex = 0;
 let currentAlbum = "";
 
 
-/* -----------------------------
+/* =============================
    Helpers
------------------------------ */
+============================= */
 
 function getColumnCount() {
 
@@ -55,9 +55,9 @@ function getColumnCount() {
 }
 
 
-/* -----------------------------
+/* =============================
    Photos
------------------------------ */
+============================= */
 
 async function loadPhotos(
   album = ""
@@ -131,9 +131,9 @@ async function loadPhotos(
 }
 
 
-/* -----------------------------
+/* =============================
    Gallery / Masonry
------------------------------ */
+============================= */
 
 function renderGallery() {
 
@@ -219,9 +219,8 @@ function renderGallery() {
 
 
       /*
-       * 没有读取照片 metadata。
-       * 使用 3:2 作为 Masonry 初始估算。
-       * 图片实际加载后浏览器会自动调整高度。
+       * R2 当前没有保存照片尺寸 metadata。
+       * Masonry 初始阶段使用 3:2 比例估算。
        */
 
       const ratio =
@@ -242,9 +241,9 @@ function renderGallery() {
 }
 
 
-/* -----------------------------
+/* =============================
    Photo Element
------------------------------ */
+============================= */
 
 function createPhotoElement(
   photo,
@@ -341,9 +340,9 @@ function createPhotoElement(
 }
 
 
-/* -----------------------------
+/* =============================
    Albums
------------------------------ */
+============================= */
 
 async function loadAlbums() {
 
@@ -370,12 +369,12 @@ async function loadAlbums() {
     albums.innerHTML = "";
 
 
-    createAlbum(
-      "ALL",
-      "",
-      true
-    );
-
+    /*
+     * 不再创建 ALL 按钮。
+     *
+     * 首页默认 loadPhotos("")
+     * 本身就是显示全部照片。
+     */
 
     for (
       const album
@@ -384,8 +383,7 @@ async function loadAlbums() {
 
       createAlbum(
         album,
-        album,
-        false
+        album
       );
 
     }
@@ -402,8 +400,7 @@ async function loadAlbums() {
 
 function createAlbum(
   name,
-  value,
-  active
+  value
 ) {
 
   const button =
@@ -418,15 +415,6 @@ function createAlbum(
 
   button.textContent =
     name;
-
-
-  if (active) {
-
-    button.classList.add(
-      "active"
-    );
-
-  }
 
 
   button.addEventListener(
@@ -465,9 +453,9 @@ function createAlbum(
 }
 
 
-/* -----------------------------
+/* =============================
    Lightbox
------------------------------ */
+============================= */
 
 function openLightbox(
   index
@@ -638,9 +626,9 @@ function previousPhoto() {
 }
 
 
-/* -----------------------------
+/* =============================
    Events
------------------------------ */
+============================= */
 
 closeButton.addEventListener(
   "click",
@@ -723,9 +711,9 @@ document.addEventListener(
 );
 
 
-/* -----------------------------
+/* =============================
    Resize
------------------------------ */
+============================= */
 
 let resizeTimer;
 
@@ -753,10 +741,9 @@ window.addEventListener(
 );
 
 
-/* -----------------------------
+/* =============================
    Start
------------------------------ */
+============================= */
 
 loadAlbums();
-
 loadPhotos();
