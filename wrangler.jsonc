@@ -12,5 +12,13 @@
       "binding": "WOOOK",
       "bucket_name": "woook"
     }
-  ]
+  ],
+
+  "images": {
+    "binding": "IMAGES"
+  },
+
+  "cache": {
+    "enabled": true
+  }
 }
